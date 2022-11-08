@@ -102,34 +102,35 @@ public class Matrix {
         return matrix;
     }
 
-    public Matrix inverse() {
 
-        Matrix result = augment().reducedRowEchelonForm();
+    public static Matrix mul(Matrix a, Matrix b) {
 
-        if (!result.slice(0, 0, rows, rows).equals(Matrix.identity(rows))) {
-            throw new ArithmeticException("Matrix is not invertible");
+        if (a.cols != b.rows) {
+            throw new ArithmeticException("failed to multiply matrices");
         }
 
-        for (int row = 0; row < rows; ++row) {
-            System.arraycopy(result.array[row], cols, array[row], 0, cols);
-        }
+        int rows = a.rows;
+        int cols = b.cols;
 
-        return this;
-    }
+        var result = new Matrix(rows, cols);
 
-    private Matrix slice(int startRow, int startCol, int endRow, int endCol) {
 
-        var result = new Matrix(endRow - startRow, endCol - startCol);
+        for (int i = 0; i < rows; i++) {
 
-        for (int i = startRow; i < endRow; i++) {
+            for (int j = 0; j < cols; j++) {
 
-            for (int j = startCol; j <  endCol; j++) {
-                result.set(i - startRow, j - startCol, get(i, j));
+                double sum = 0.0;
+
+                for (int k = 0; k < b.rows; k++) {
+                    sum += a.get(i, k) * b.get(k, j);
+                }
+
+                result.set(i, j, sum);
             }
         }
-
         return result;
     }
+
 
     public String formatted(String format) {
 
@@ -187,65 +188,120 @@ public class Matrix {
         return true;
     }
 
-    private Matrix reducedRowEchelonForm() {
+    private static int powerOne(int num) {
+        return num % 2 == 0 ? 1 : -1;
+    }
 
-        int lead = 0;
+    private Matrix delete(int indexI, int indexJ) {
 
-        for (int r = 0; r < rows; r++) {
-            if (cols <= lead) {
-                return this;
-            }
-            var i = r;
-            while (get(i, lead) == 0) {
-                i++;
-                if (rows == i) {
-                    i = r;
-                    lead++;
-                    if (cols == lead) {
-                        return this;
-                    }
-                }
-            }
-
-            swapRows(i, r);
-
-            var val = get(r, lead);
-            for (int j = 0; j < cols; j++) {
-                var b = get(r, j) / val;
-                set(r, j, b);
-            }
-
-            for (i = 0; i < rows; i++) {
-                if (i == r) continue;
-                val = get(i, lead);
-                for (int j = 0; j < cols; j++) {
-                    var b =  get(i, j) - val * get(r, j);
-                    set(i, j, b);
-                }
-            }
-            lead++;
+        if (indexI < 0 || rows <= indexI || indexJ < 0 || cols <= indexJ) {
+            throw new IndexOutOfBoundsException("wrong indices");
         }
+
+        var matrix = new Matrix(rows-1, cols-1);
+
+        for (int j = 0, b = 0; j < cols; j++) {
+
+            if (j == indexJ) {
+                b++;
+                continue;
+            }
+
+            for (int i = 0, a = 0; i < rows; i++) {
+
+                if (i == indexI) {
+                    a++;
+                    continue;
+                }
+                matrix.set(i-a, j-b, get(i, j));
+            }
+        }
+
+        return matrix;
+    }
+
+    private Matrix deleteRowAndColumn(int idx, int jdx) {
+
+        var r = new Matrix(rows-1, cols-1);
+
+
+        for (int i = 0; i < idx; i++) {
+
+            for (int j = 0; j < jdx; j++) {
+                r.set(i, j, get(i, j));
+            }
+
+            for (int j = jdx+1; j < cols; j++) {
+                r.set(i, j-1, get(i, j));
+            }
+
+        }
+
+        for (int i = idx+1; i < rows; i++) {
+
+            for (int j = 0; j < jdx; j++) {
+                r.set(i-1, j, get(i, j));
+            }
+
+            for (int j = jdx+1; j < cols; j++) {
+                r.set(i-1, j-1, get(i, j));
+            }
+
+        }
+
+        return r;
+    }
+
+    public double det() {
+
+        if (rows != cols) {
+            throw new ArithmeticException("width has to be equal to height");
+        }
+
+        int size = rows;
+
+        if (size == 1) {
+            return get(0, 0);
+        }
+
+        double det = 0;
+        for (int k = 0; k < size; k++) {
+            var matrix = deleteRowAndColumn(0, k);
+            det += get(0, k) * powerOne(k+1) * matrix.det();
+        }
+
+        return det;
+    }
+
+    public Matrix inverse() {
+
+        if (rows != cols) {
+            throw new ArithmeticException("Matrix is not invertible");
+        }
+
+        int size = rows;
+
+        var det = det();
+        if (doubleEquals(det, 0)) {
+            throw new ArithmeticException("Matrix is not invertible");
+        }
+
+        var result = new Matrix(size, size);
+
+        for (int i = 0; i < size; i++) {
+
+            for (int j = 0; j < size; j++) {
+
+                double value = (powerOne(i+j+1) * delete(i, j).det()) / det;
+
+                result.set(j, i, value);
+            }
+
+        }
+
+        this.array = result.array;
+
         return this;
-    }
-
-    private Matrix augment() {
-        if (cols != rows) {
-            throw new ArithmeticException("Cannot augment non-square matrix");
-        }
-
-        Matrix result = new Matrix(rows, cols * 2);
-        for (int row = 0; row < rows; ++row) {
-            System.arraycopy(array[row], 0, result.array[row], 0, cols);
-            result.array[row][row + cols] = 1;
-        }
-
-        return result;
-    }
-
-    private void swapRows(int i, int j) {
-        double[] temp = array[i];
-        array[i] = array[j];
-        array[j] = temp;
     }
 
     private static boolean doubleEquals(double a, double b) {
