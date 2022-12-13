@@ -192,38 +192,9 @@ public class Matrix {
         return num % 2 == 0 ? 1 : -1;
     }
 
-    private Matrix delete(int indexI, int indexJ) {
-
-        if (indexI < 0 || rows <= indexI || indexJ < 0 || cols <= indexJ) {
-            throw new IndexOutOfBoundsException("wrong indices");
-        }
-
-        var matrix = new Matrix(rows-1, cols-1);
-
-        for (int j = 0, b = 0; j < cols; j++) {
-
-            if (j == indexJ) {
-                b++;
-                continue;
-            }
-
-            for (int i = 0, a = 0; i < rows; i++) {
-
-                if (i == indexI) {
-                    a++;
-                    continue;
-                }
-                matrix.set(i-a, j-b, get(i, j));
-            }
-        }
-
-        return matrix;
-    }
-
     private Matrix deleteRowAndColumn(int idx, int jdx) {
 
         var r = new Matrix(rows-1, cols-1);
-
 
         for (int i = 0; i < idx; i++) {
 
@@ -292,7 +263,7 @@ public class Matrix {
 
             for (int j = 0; j < size; j++) {
 
-                double value = (powerOne(i+j+1) * delete(i, j).det()) / det;
+                double value = (powerOne(i+j+1) * deleteRowAndColumn(i, j).det()) / det;
 
                 result.set(j, i, value);
             }
@@ -300,7 +271,6 @@ public class Matrix {
         }
 
         this.array = result.array;
-
         return this;
     }
 

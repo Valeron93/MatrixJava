@@ -144,4 +144,23 @@ public class MatrixTest {
 
         assert matrix.equals(matrix2);
     }
+
+    @Test
+    public void det() {
+        var matrix = new Matrix(new double[][]{
+                {1, 2, 3},
+                {3, 2, 1},
+                {2, 1, 3}
+        });
+
+        var inverse = new Matrix(new double[][]{
+                {-5.0/12.0,  1.0/4.0,  1.0/3.0},
+                { 7.0/12.0,  1.0/4.0, -2.0/3.0},
+                { 1.0/12.0, -1.0/4.0,  1.0/3.0},
+        });
+
+        assertEquals(matrix.det(), 1.0/inverse.det(), Matrix.EPSILON);
+
+
+    }
 }
